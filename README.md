@@ -88,7 +88,6 @@ Now we need to enable the communication between the three vnets :
 
 <br>
 the script bellow enable the peering between the vnets
-
 <br>
 ``` bash
 ### Peering AKS Zone with hub zone
@@ -143,3 +142,38 @@ az network vnet peering create \
     --allow-vnet-access \
     --allow-forwarded-traffic
 ```
+<br>
+Now we are going to create AKS , --enable-private-cluster parameter is going to enable private link for K8S API Server.
+before creating AKS , we get the last available stable version for the current location
+
+<br>
+```
+## Create AKS Private cluster
+aks_subnet_zone_id=$(az network vnet subnet show --name $aks_subnet_zone_name \
+                            --vnet-name $aks_vnet_zone_name \
+                            --resource-group $aks_resource_group_name \
+                            --query id --output tsv)
+ 
+## Get the latest AKS version available in the curent location
+AKS_VERSION=$(az aks get-versions --location $location \
+            --query "orchestrators[?to_string(isPreview)=='null'] | [-1].orchestratorVersion" \
+            --output tsv)
+echo $AKS_VERSION
+
+az aks create --resource-group $aks_resource_group_name \
+              --name $cluster_name \
+              --kubernetes-version $AKS_VERSION \
+              --location $location \
+              --enable-private-cluster \
+              --node-vm-size $cluster_node_size \
+              --load-balancer-sku standard \
+              --node-count $cluster_node_count \
+              --node-osdisk-size $node_disk_size \
+              --network-plugin kubenet \
+              --vnet-subnet-id $aks_subnet_zone_id \
+              --docker-bridge-address 172.17.0.1/16 \
+              --dns-service-ip 10.30.0.10 \
+              --service-cidr 10.30.0.0/16 
+```
+<br>
+Now we created AKS by enabling private link , the API server can olny be accessed from the AKS vnet or peered vnet.
