@@ -147,7 +147,7 @@ Now we are going to create AKS , --enable-private-cluster parameter is going to
 before creating AKS , we get the last available stable version for the current location
 
 <br>
-```
+``` bash
 ## Create AKS Private cluster
 aks_subnet_zone_id=$(az network vnet subnet show --name $aks_subnet_zone_name \
                             --vnet-name $aks_vnet_zone_name \
@@ -176,4 +176,139 @@ az aks create --resource-group $aks_resource_group_name \
               --service-cidr 10.30.0.0/16 
 ```
 <br>
-Now we created AKS by enabling private link , the API server can olny be accessed from the AKS vnet or peered vnet.
+Now we created AKS by enabling private link , the API server can olny be reachable from the AKS vnet or peered vnets.
+
+In the next step we are going to create the jumpbox in hub vnet
+<br>
+``` bash
+az network public-ip create \
+    --resource-group $hub_resource_group_name \
+    --name $hub_jumpbox_public_ip_address \
+    --allocation-method dynamic \
+    --sku basic
+
+az vm create --name $hub_jumpbox_name  \
+             --resource-group $hub_resource_group_name \
+             --image UbuntuLTS \
+             --location $location \
+             --size Standard_A1_v2 \
+             --authentication-type ssh \
+             --ssh-key-values ~/.ssh/id_rsa.pub \
+             --admin-username jumboxadmin  \
+             --vnet-name $hub_vnet_zone_name \
+             --subnet $hub_subnet_zone_name \
+             --public-ip-address $hub_jumpbox_public_ip_address 
+
+jumpbox_vm_public_ip=$(az vm  show -d --name $hub_jumpbox_name \
+             --resource-group $hub_resource_group_name \
+             --query publicIps -o tsv)
+```
+
+ after that we need to link the hub vnet to the private dns Zone created during the creation of the AKS cluster
+<br>
+```
+node_resource_group=$(az aks show --name $cluster_name \
+    --resource-group $aks_resource_group_name \
+    --query 'nodeResourceGroup' -o tsv) 
+
+echo $node_resource_group
+
+dnszone=$(az network private-dns zone list \
+    --resource-group $node_resource_group \
+    --query [0].name -o tsv)
+
+az network private-dns link vnet create \
+    --name "${hub_vnet_zone_name}-${hub_resource_group_name}" \
+    --resource-group $node_resource_group \
+    --virtual-network $vnet_hub_id \
+    --zone-name $dnszone \
+    --registration-enabled false
+```
+
+ Now we need to create a private Azure Container registry , first we create ACR , than we need to disable the private end point policy from the sub vnet , and create the private end point ,  we need also to create private dns zone with name as privatelink.azurecr.io
+and to add to A record with private ip addresses of the registry and the data acr endpoint.
+Finaly we are going to disable the public access to the ACR
+<br>
+```
+az acr create \
+  --name $acr_name \
+  --resource-group $acr_resource_group_name \
+  --sku Premium
+
+REGISTRY_ID=$(az acr show --name $acr_name \
+  --query 'id' --output tsv)
+
+REGISTRY_LOGIN_SERVER=$(az acr show --name $acr_name \
+  --query 'loginServer' --output tsv)
+
+echo $REGISTRY_ID
+echo $REGISTRY_LOGIN_SERVER
+##disable subunet private endpoit policies
+az network vnet subnet update \
+ --name  $acr_subnet_zone_name \
+ --vnet-name $acr_vnet_zone_name \
+ --resource-group $acr_resource_group_name \
+ --disable-private-endpoint-network-policies
+ 
+##Create acr private endpoint
+az network private-endpoint create \
+    --name "${acr_name}-${acr_resource_group_name}" \
+    --resource-group $acr_resource_group_name \
+    --vnet-name $acr_vnet_zone_name \
+    --subnet $acr_subnet_zone_name \
+    --private-connection-resource-id $REGISTRY_ID \
+    --group-ids registry \
+    --connection-name "${acr_name}-${acr_resource_group_name}-cnx"
+
+##create private dns zone with the same name as acr registry
+ az network private-dns zone create \
+  --resource-group $acr_resource_group_name \
+  --name $acr_private_link
+
+##Get acr endpoint and data acr endpoint ip private addresses
+acr_private_network_id=$(az network private-endpoint show \
+  --name "${acr_name}-${acr_resource_group_name}" \
+  --resource-group $acr_resource_group_name \
+  --query 'networkInterfaces[0].id' \
+  --output tsv)
+
+acr_private_ip=$(az resource show \
+  --ids $acr_private_network_id \
+  --query 'properties.ipConfigurations[1].properties.privateIPAddress' \
+  --output tsv)
+
+data_acr_private_ip=$(az resource show \
+  --ids $acr_private_network_id \
+  --query 'properties.ipConfigurations[0].properties.privateIPAddress' \
+  --output tsv)
+
+echo $acr_private_ip
+echo $data_acr_private_ip
+
+##create A records in the private dns zone 
+az network private-dns record-set a create \
+  --name $acr_name \
+  --zone-name $acr_private_link \
+  --resource-group $acr_resource_group_name
+
+az network private-dns record-set a create \
+  --name ${acr_name}.${location}.data \
+  --zone-name $acr_private_link \
+  --resource-group $acr_resource_group_name
+
+az network private-dns record-set a add-record \
+  --record-set-name $acr_name \
+  --zone-name $acr_private_link \
+  --resource-group $acr_resource_group_name \
+  --ipv4-address $acr_private_ip
+
+az network private-dns record-set a add-record \
+  --record-set-name ${acr_name}.${location}.data \
+  --zone-name $acr_private_link \
+  --resource-group $acr_resource_group_name \
+  --ipv4-address $data_acr_private_ip
+
+##Disable public access 
+echo $acr_name
+az acr update --name $acr_name --default-action Deny
+```
