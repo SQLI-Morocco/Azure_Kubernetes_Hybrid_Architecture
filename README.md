@@ -356,7 +356,7 @@ az aks update-credentials --resource-group $aks_resource_group_name \
                           --service-principal $acr_aks_role_id \
                           --client-secret $acr_aks_role_password
 ```
-<br>
+
 **Prepare the JumpBox and deploy the first service**
 
 From the JumBox we need to install the prerequisites to manage our cluster
@@ -367,11 +367,10 @@ From the JumBox we need to install the prerequisites to manage our cluster
 4. Docker.io
 5. HELM ( K8S package manager)
 
-Execute the script [<span class="colour" style="color:blue">jumbox-install.sh</span>](jumbox-install.sh) the execute all these prerequisite
-Now from the jumbox we are going to pull a public docker image , tag it with the name of our ACR n than push it to the private registry
-
+Execute the script [<span class="colour" style="color:blue">jumbox-install.sh</span>](jumbox-install.sh) to install all these prerequisite
+Now from the jumbox we are going to pull a public docker image , tag it with the name of our ACR  name than push it to the private registry
 <br>
-```
+``` bash
 sudo docker pull neilpeterson/aks-helloworld:v1
 sudo docker tag neilpeterson/aks-helloworld:v1 rakataregistry.azurecr.io/aks-helloworld:v1
 sudo docker push rakataregistry.azurecr.io/aks-helloworld
@@ -379,13 +378,13 @@ sudo docker push rakataregistry.azurecr.io/aks-helloworld
 <br>
 To deploy the hello world service from the private ACR we have to execute the command below from the jumbpx ,please note that you need to download aks-helloworld-one.yaml into the jumpbox
 <br>
-```
+``` bash
 kubectl apply -f aks-helloworld-one.yaml
 ```
 
 To check if everything is working as expected, you can check the status of deployment by executing the command bellow
 <br>
-```
+``` bash
 kubectl get all
 ```
 <br>
@@ -394,7 +393,7 @@ kubectl get all
 To access to the service from outside of the cluster, we need to install ingress.
 Using helm  we are going to install ngnix-ingress  and enable private load balancer.
 <br>
-```
+``` bash
 # Create a namespace for your ingress resources
 kubectl create namespace ingress-basic
 
@@ -412,7 +411,7 @@ helm install nginx-ingress stable/nginx-ingress \
 <br>
 The internal-ingress.yam contains the configuration required to enable the private load balancer
 <br>
-```
+``` yaml
 controller:
   service:
     loadBalancerIP: 10.20.1.240
@@ -422,13 +421,13 @@ controller:
 
 The internal-ingress.yam contains the configuration required to enable the private load balancer
 <br>
-```
+``` bash
 kubectl apply -f hello-world-ingress.yaml
 ```
 
 Now you can access to hello-word services from the jumbox using the URI bellow
 <br>
-```
+``` bash
 curl http://10.20.1.240/hello-world-one
 ```
 <br>
@@ -436,9 +435,8 @@ curl http://10.20.1.240/hello-world-one
 
 Every thing is working fine from the jumbox ,  now we need to connect the hub private vnet to the on-premise vnet, we are going to create VPN gateway in the hub vnet.
 to create a vnet gateway require /27 subnet and dynamic IP address, the creation of the Vnet gateway will take more than 20 minutes
-
 <br>
-```
+``` bash
 az network vnet subnet create --name $hub_gateway_subnet_name \
             --resource-group $hub_resource_group_name \
             --vnet-name $hub_vnet_zone_name  \
@@ -469,9 +467,9 @@ az network vnet-gateway show \
 After the creation of the VPN gateway you need to configure Site 2 Site connection with your on-premise VPN gateway , the configuration depends on the software used in on-premise environment.
 In the this demo , we are going to configure Point to Site configuration, that allows you to install client VPN in your desktop and connect to Azure private environment.
 the configuration of  the certificates and the private key are explained in [generate-certificate.sh](generate-certificate.sh).
-Now that you have your certificate and private key, you can configure your P2S and download the client VPN software
+Now that you have your certificate and private key, you can configure your P2S and download the client VPN software.
 <br>
-```
+``` bash
 az network vnet-gateway update \
                 --name $hub_gateway_name \
                 --resource-group $hub_resource_group_name \
