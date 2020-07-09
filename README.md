@@ -19,7 +19,7 @@ In the Hub virtual network, we are going to provision the Jumpbox and Virtual ne
 
 First, we are going to start by initializing all parameters that we will need for this tutorial
 <br>
-```
+``` bash
 ##Variables declaration
 ##Spoke 1 : AKS Zone
 location="eastus"
@@ -55,9 +55,10 @@ hub_gateway_public_ip="VNet1GWIP"
 hub_gateway_name="hub_vpn_gateway"
 ```
 <br>
+
 **Vnets Creation and peering**
 
-In the next step  we create a resource group and virtual network vent for each zone ( Spoke 1, Spocke 2 and Hub)
+In the next step  we create a resource group and virtual network vent for each zone ( Spoke 1, Spocke 2 and Hub).
 
 <br>
 ``` bash
@@ -93,7 +94,9 @@ Now we need to enable the communication between the three vnets :
 3. Spoke1 needs to connect to Spoke2 to enable AKS to pull images from the ACR during the deployment.
 
 the script bellow enables thepeering between the vnets
+
 <br>
+
 ``` bash
 ### Peering AKS Zone with hub zone
 az network vnet peering create \
@@ -103,8 +106,6 @@ az network vnet peering create \
     --remote-vnet $vnet_hub_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
-
 az network vnet peering create \
     --resource-group $hub_resource_group_name \
     -name "${hub_vnet_zone_name}-to-${aks_vnet_zone_name}" \
@@ -112,7 +113,6 @@ az network vnet peering create \
     --remote-vnet $vnet_aks_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 ### Peering ACR Zone with hub zone
 az network vnet peering create \
     --resource-group $acr_resource_group_name \
@@ -121,7 +121,6 @@ az network vnet peering create \
     --remote-vnet $vnet_hub_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 az network vnet peering create \
     --resource-group $hub_resource_group_name \
     --name "${hub_vnet_zone_name}-to-${acs_vnet_zone_name}" \
@@ -129,7 +128,6 @@ az network vnet peering create \
     --remote-vnet $vnet_acr_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 ### Peering AKS Zone with ACR Zone
 az network vnet peering create \
     --resource-group $aks_resource_group_name \
@@ -138,7 +136,6 @@ az network vnet peering create \
     --remote-vnet $vnet_acr_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 az network vnet peering create \
     --resource-group $acr_resource_group_name \
     --name "${acr_vnet_zone_name}-to-${aks_vnet_zone_name}" \
