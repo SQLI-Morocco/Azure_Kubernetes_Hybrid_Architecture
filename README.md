@@ -319,7 +319,7 @@ echo $acr_name
 az acr update --name $acr_name --default-action Deny
 ```
 
-To have the ability to reach the acr from the Hub zone and the aks zone using the private domain name , we need to link the two vnets to ACR private dns zone
+To have the ability to reach the acr from the Hub zone and the aks zone using the private domain name , we need to link the two vnets to ACR private dns zone.
 <br>
 ``` bash
 az network private-dns link vnet create \
@@ -337,11 +337,11 @@ az network private-dns link vnet create \
     --zone-name $acr_private_link \
     --registration-enabled false
 ```
-<br>
+
 As you know AKS needs to be authenticated to pull images from the ACR , there are many ways to ensure that , for this tutorial we are going to use Azure service principal and RBAC.
-we create a service principal, and assign to it the read role from the ACR scope, than we need to update the AKS credential with the creates service principal
+we create a service principal, and assign to it the read role from the ACR scope, than we need to update the AKS credential with the creates service principal.
 <br>
-```
+``` bash
 acr_aks_role_password=$(az ad sp create-for-rbac \
              --name $acr_private_aks_role_reader  --query password -o tsv )
 acr_aks_role_id=$(az ad sp list --show-mine \
