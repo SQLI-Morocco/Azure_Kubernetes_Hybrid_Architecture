@@ -17,9 +17,9 @@ In the Hub virtual network, we are going to provision the Jumpbox and Virtual ne
 
 **Parameters initialization**
 
-First, we are going to start by initializing all parameters that we will need for this tutorial
+First, we are going to start by initializing all parameters that we will need for this tutorial.
 <br>
-```
+``` bash
 ##Variables declaration
 ##Spoke 1 : AKS Zone
 location="eastus"
@@ -55,10 +55,10 @@ hub_gateway_public_ip="VNet1GWIP"
 hub_gateway_name="hub_vpn_gateway"
 ```
 <br>
+
 **Vnets Creation and peering**
 
-In the next step  we create a resource group and virtual network vent for each zone ( Spoke 1, Spocke 2 and Hub)
-
+In the next step  we create a resource group and virtual network vent for each zone ( Spoke 1, Spocke 2 and Hub).
 <br>
 ``` bash
 ## Create spoke 1 AKS VNet and SubNet
@@ -93,7 +93,9 @@ Now we need to enable the communication between the three vnets :
 3. Spoke1 needs to connect to Spoke2 to enable AKS to pull images from the ACR during the deployment.
 
 the script bellow enables thepeering between the vnets
+
 <br>
+
 ``` bash
 ### Peering AKS Zone with hub zone
 az network vnet peering create \
@@ -103,8 +105,6 @@ az network vnet peering create \
     --remote-vnet $vnet_hub_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
-
 az network vnet peering create \
     --resource-group $hub_resource_group_name \
     -name "${hub_vnet_zone_name}-to-${aks_vnet_zone_name}" \
@@ -112,7 +112,6 @@ az network vnet peering create \
     --remote-vnet $vnet_aks_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 ### Peering ACR Zone with hub zone
 az network vnet peering create \
     --resource-group $acr_resource_group_name \
@@ -121,7 +120,6 @@ az network vnet peering create \
     --remote-vnet $vnet_hub_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 az network vnet peering create \
     --resource-group $hub_resource_group_name \
     --name "${hub_vnet_zone_name}-to-${acs_vnet_zone_name}" \
@@ -129,7 +127,6 @@ az network vnet peering create \
     --remote-vnet $vnet_acr_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 ### Peering AKS Zone with ACR Zone
 az network vnet peering create \
     --resource-group $aks_resource_group_name \
@@ -138,7 +135,6 @@ az network vnet peering create \
     --remote-vnet $vnet_acr_id \
     --allow-vnet-access \
     --allow-forwarded-traffic
-
 az network vnet peering create \
     --resource-group $acr_resource_group_name \
     --name "${acr_vnet_zone_name}-to-${aks_vnet_zone_name}" \
@@ -184,8 +180,9 @@ az aks create --resource-group $aks_resource_group_name \
 <br>
 Now we created AKS by enabling private link , the API server can only be reachable from the AKS vnet or peered vnets.
 
-**Creation of the jumpbow in hub vnet**
-In the next step we are going to create the jumpbox in hub vnet
+**Creation of the jumpbox in hub vnet**
+
+In the next step we are going to create the jumpbox in hub vnet.
 <br>
 ``` bash
 az network public-ip create \
@@ -210,10 +207,9 @@ jumpbox_vm_public_ip=$(az vm  show -d --name $hub_jumpbox_name \
              --resource-group $hub_resource_group_name \
              --query publicIps -o tsv)
 ```
+After that we need to link the hub vnet to the private dns Zone created during the creation of the AKS cluster.
 <br>
-After that we need to link the hub vnet to the private dns Zone created during the creation of the AKS cluster
-<br>
-```
+``` bash
 node_resource_group=$(az aks show --name $cluster_name \
     --resource-group $aks_resource_group_name \
     --query 'nodeResourceGroup' -o tsv) 
@@ -231,14 +227,15 @@ az network private-dns link vnet create \
     --zone-name $dnszone \
     --registration-enabled false
 ```
-<br>
+
 **Creation of the ACR in spoke 2 vnet**
+
 
 Now we need to create a private Azure Container registry , first we create ACR , than we need to disable the private end point policy from the sub vnet , and create the private end point , we need also to create private dns zone with name as privatelink.azurecr.io
 and to add to A record with private ip addresses of the registry and the data acr endpoint.
 Finally we are going to disable the  public access to the ACR
 <br>
-```
+``` bash
 az acr create \
   --name $acr_name \
   --resource-group $acr_resource_group_name \
@@ -321,10 +318,10 @@ az network private-dns record-set a add-record \
 echo $acr_name
 az acr update --name $acr_name --default-action Deny
 ```
+
+To have the ability to reach the acr from the Hub zone and the aks zone using the private domain name , we need to link the two vnets to ACR private dns zone.
 <br>
-To have the ability to reach the acr from the Hub zone and the aks zone using the private domain name , we need to link the two vnets to ACR private dns zone
-<br>
-```
+``` bash
 az network private-dns link vnet create \
     --name "${hub_vnet_zone_name}-${hub_resource_group_name}" \
     --resource-group $acr_resource_group_name \
@@ -340,11 +337,11 @@ az network private-dns link vnet create \
     --zone-name $acr_private_link \
     --registration-enabled false
 ```
-<br>
+
 As you know AKS needs to be authenticated to pull images from the ACR , there are many ways to ensure that , for this tutorial we are going to use Azure service principal and RBAC.
-we create a service principal, and assign to it the read role from the ACR scope, than we need to update the AKS credential with the creates service principal
+we create a service principal, and assign to it the read role from the ACR scope, than we need to update the AKS credential with the creates service principal.
 <br>
-```
+``` bash
 acr_aks_role_password=$(az ad sp create-for-rbac \
              --name $acr_private_aks_role_reader  --query password -o tsv )
 acr_aks_role_id=$(az ad sp list --show-mine \
@@ -359,7 +356,7 @@ az aks update-credentials --resource-group $aks_resource_group_name \
                           --service-principal $acr_aks_role_id \
                           --client-secret $acr_aks_role_password
 ```
-<br>
+
 **Prepare the JumpBox and deploy the first service**
 
 From the JumBox we need to install the prerequisites to manage our cluster
@@ -370,34 +367,31 @@ From the JumBox we need to install the prerequisites to manage our cluster
 4. Docker.io
 5. HELM ( K8S package manager)
 
-Execute the script [<span class="colour" style="color:blue">jumbox-install.sh</span>](jumbox-install.sh) the execute all these prerequisite
-Now from the jumbox we are going to pull a public docker image , tag it with the name of our ACR n than push it to the private registry
-
+Execute the script [<span class="colour" style="color:blue">jumbox-install.sh</span>](jumbox-install.sh) to install all these prerequisite
+Now from the jumbox we are going to pull a public docker image , tag it with the name of our ACR  name than push it to the private registry
 <br>
-```
+``` bash
 sudo docker pull neilpeterson/aks-helloworld:v1
 sudo docker tag neilpeterson/aks-helloworld:v1 rakataregistry.azurecr.io/aks-helloworld:v1
 sudo docker push rakataregistry.azurecr.io/aks-helloworld
 ```
+To deploy the hello world service from the private ACR we have to execute the command below from the jumbpx ,please note that you need to download aks-helloworld-one.yaml into the jumpbox.
 <br>
-To deploy the hello world service from the private ACR we have to execute the command below from the jumbpx ,please note that you need to download aks-helloworld-one.yaml into the jumpbox
-<br>
-```
+``` bash
 kubectl apply -f aks-helloworld-one.yaml
 ```
 
 To check if everything is working as expected, you can check the status of deployment by executing the command bellow
 <br>
-```
+``` bash
 kubectl get all
 ```
-<br>
 **Local network facing ingress**
 
 To access to the service from outside of the cluster, we need to install ingress.
 Using helm  we are going to install ngnix-ingress  and enable private load balancer.
 <br>
-```
+``` bash
 # Create a namespace for your ingress resources
 kubectl create namespace ingress-basic
 
@@ -412,7 +406,6 @@ helm install nginx-ingress stable/nginx-ingress \
     --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
     --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux
 ```
-<br>
 The internal-ingress.yam contains the configuration required to enable the private load balancer
 <br>
 ```
@@ -425,23 +418,22 @@ controller:
 
 The internal-ingress.yam contains the configuration required to enable the private load balancer
 <br>
-```
+``` bash
 kubectl apply -f hello-world-ingress.yaml
 ```
 
 Now you can access to hello-word services from the jumbox using the URI bellow
 <br>
-```
+``` bash
 curl http://10.20.1.240/hello-world-one
 ```
-<br>
+
 **Create the VPN tunnel**
 
 Every thing is working fine from the jumbox ,  now we need to connect the hub private vnet to the on-premise vnet, we are going to create VPN gateway in the hub vnet.
 to create a vnet gateway require /27 subnet and dynamic IP address, the creation of the Vnet gateway will take more than 20 minutes
-
 <br>
-```
+``` bash
 az network vnet subnet create --name $hub_gateway_subnet_name \
             --resource-group $hub_resource_group_name \
             --vnet-name $hub_vnet_zone_name  \
@@ -472,9 +464,9 @@ az network vnet-gateway show \
 After the creation of the VPN gateway you need to configure Site 2 Site connection with your on-premise VPN gateway , the configuration depends on the software used in on-premise environment.
 In the this demo , we are going to configure Point to Site configuration, that allows you to install client VPN in your desktop and connect to Azure private environment.
 the configuration of  the certificates and the private key are explained in [generate-certificate.sh](generate-certificate.sh).
-Now that you have your certificate and private key, you can configure your P2S and download the client VPN software
+Now that you have your certificate and private key, you can configure your P2S and download the client VPN software.
 <br>
-```
+``` bash
 az network vnet-gateway update \
                 --name $hub_gateway_name \
                 --resource-group $hub_resource_group_name \
