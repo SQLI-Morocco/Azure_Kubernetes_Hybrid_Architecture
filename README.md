@@ -376,7 +376,7 @@ sudo docker tag neilpeterson/aks-helloworld:v1 rakataregistry.azurecr.io/aks
 sudo docker push rakataregistry.azurecr.io/aks-helloworld
 ```
 <br>
-To deploy the hello world service from the private ACR we have to execute the command below from the jumbpx ,please note that you need to download aks-helloworld-one.yaml into the jumpbox
+To deploy the hello world service from the private ACR we have to execute the command below from the jumbpx ,please note that you need to download aks-helloworld-one.yaml into the jumpbox.
 <br>
 ``` bash
 kubectl apply -f aks-helloworld-one.yaml
@@ -387,7 +387,6 @@ To check if everything is working as expected, you can check the status of depl
 ``` bash
 kubectl get all
 ```
-<br>
 **Local network facing ingress**
 
 To access to the service from outside of the cluster, we need to install ingress.
@@ -411,7 +410,7 @@ helm install nginx-ingress stable/nginx-ingress \
 <br>
 The internal-ingress.yam contains the configuration required to enable the private load balancer
 <br>
-``` yaml
+```
 controller:
   service:
     loadBalancerIP: 10.20.1.240
@@ -430,7 +429,7 @@ Now you can access to hello-word services from the jumbox using the URI bellow
 ``` bash
 curl http://10.20.1.240/hello-world-one
 ```
-<br>
+
 **Create the VPN tunnel**
 
 Every thing is working fine from the jumbox ,  now we need to connect the hub private vnet to the on-premise vnet, we are going to create VPN gateway in the hub vnet.
