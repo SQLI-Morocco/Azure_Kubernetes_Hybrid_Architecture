@@ -181,7 +181,8 @@ az aks create --resource-group $aks_resource_group_name \
 Now we created AKS by enabling private link , the API server can only be reachable from the AKS vnet or peered vnets.
 
 **Creation of the jumpbow in hub vnet**
-In the next step we are going to create the jumpbox in hub vnet
+
+In the next step we are going to create the jumpbox in hub vnet.
 <br>
 ``` bash
 az network public-ip create \
@@ -206,10 +207,9 @@ jumpbox_vm_public_ip=$(az vm  show -d --name $hub_jumpbox_name \
              --resource-group $hub_resource_group_name \
              --query publicIps -o tsv)
 ```
+After that we need to link the hub vnet to the private dns Zone created during the creation of the AKS cluster.
 <br>
-After that we need to link the hub vnet to the private dns Zone created during the creation of the AKS cluster
-<br>
-```
+``` bash
 node_resource_group=$(az aks show --name $cluster_name \
     --resource-group $aks_resource_group_name \
     --query 'nodeResourceGroup' -o tsv) 
