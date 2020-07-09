@@ -1,3 +1,6 @@
+##!/usr/bin/env bash
+set -e
+
 ##Variables declaration
 ##Spoke 1 : AKS Zone
 location="eastus"

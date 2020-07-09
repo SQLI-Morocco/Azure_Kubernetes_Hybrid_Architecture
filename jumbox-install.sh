@@ -1,4 +1,7 @@
 
+##!/usr/bin/env bash
+set -e
+
 #Install AZ Cli command
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 sudo apt-get update

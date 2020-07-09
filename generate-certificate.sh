@@ -1,3 +1,6 @@
+##!/usr/bin/env bash
+set -e
+
 sudo apt-get install strongswan -y
 sudo apt-get install strongswan-pki -y
 sudo apt-get  install libstrongswan-extra-plugins -y
