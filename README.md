@@ -375,7 +375,6 @@ sudo docker pull neilpeterson/aks-helloworld:v1
 sudo docker tag neilpeterson/aks-helloworld:v1 rakataregistry.azurecr.io/aks-helloworld:v1
 sudo docker push rakataregistry.azurecr.io/aks-helloworld
 ```
-<br>
 To deploy the hello world service from the private ACR we have to execute the command below from the jumbpx ,please note that you need to download aks-helloworld-one.yaml into the jumpbox.
 <br>
 ``` bash
@@ -407,7 +406,6 @@ helm install nginx-ingress stable/nginx-ingress \
     --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
     --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux
 ```
-<br>
 The internal-ingress.yam contains the configuration required to enable the private load balancer
 <br>
 ```
