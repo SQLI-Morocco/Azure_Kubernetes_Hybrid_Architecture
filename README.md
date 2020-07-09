@@ -318,10 +318,10 @@ az network private-dns record-set a add-record \
 echo $acr_name
 az acr update --name $acr_name --default-action Deny
 ```
-<br>
+
 To have the ability to reach the acr from the Hub zone and the aks zone using the private domain name , we need to link the two vnets to ACR private dns zone
 <br>
-```
+``` bash
 az network private-dns link vnet create \
     --name "${hub_vnet_zone_name}-${hub_resource_group_name}" \
     --resource-group $acr_resource_group_name \
