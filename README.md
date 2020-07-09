@@ -17,7 +17,7 @@ In the Hub virtual network, we are going to provision the Jumpbox and Virtual ne
 
 **Parameters initialization**
 
-First, we are going to start by initializing all parameters that we will need for this tutorial
+First, we are going to start by initializing all parameters that we will need for this tutorial.
 <br>
 ``` bash
 ##Variables declaration
@@ -59,7 +59,6 @@ hub_gateway_name="hub_vpn_gateway"
 **Vnets Creation and peering**
 
 In the next step  we create a resource group and virtual network vent for each zone ( Spoke 1, Spocke 2 and Hub).
-
 <br>
 ``` bash
 ## Create spoke 1 AKS VNet and SubNet
