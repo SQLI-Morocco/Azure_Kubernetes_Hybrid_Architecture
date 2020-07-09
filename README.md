@@ -180,7 +180,7 @@ az aks create --resource-group $aks_resource_group_name \
 <br>
 Now we created AKS by enabling private link , the API server can only be reachable from the AKS vnet or peered vnets.
 
-**Creation of the jumpbow in hub vnet**
+**Creation of the jumpbox in hub vnet**
 
 In the next step we are going to create the jumpbox in hub vnet.
 <br>
@@ -227,14 +227,15 @@ az network private-dns link vnet create \
     --zone-name $dnszone \
     --registration-enabled false
 ```
-<br>
+
 **Creation of the ACR in spoke 2 vnet**
+
 
 Now we need to create a private Azure Container registry , first we create ACR , than we need to disable the private end point policy from the sub vnet , and create the private end point , we need also to create private dns zone with name as privatelink.azurecr.io
 and to add to A record with private ip addresses of the registry and the data acr endpoint.
 Finally we are going to disable the  public access to the ACR
 <br>
-```
+``` bash
 az acr create \
   --name $acr_name \
   --resource-group $acr_resource_group_name \
