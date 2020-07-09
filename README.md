@@ -466,7 +466,7 @@ az network vnet-gateway show \
             --output tsv
 ```
 
-After the creation of the VPN gateway you need to configure Site 2 Site connection with your on-premise VPN gateway , the configuration depends on the software used in on-premise environment.
+After the creation of the VPN gateway you need to configure Site 2 Site connection with your on-premise VPN gateway, the configuration depends on the software used in on-premise environment.
 In the this demo , we are going to configure Point to Site connection, that allows you to install client VPN in your desktop and connect to Azure private environment.
 the configuration of  the certificates and the private key are explained in [generate-certificate.sh](generate-certificate.sh).
 Now that you have your certificate and private key, you can configure your P2S and download the client VPN software.
