@@ -8,16 +8,16 @@ But it’s also possible to protect your cluster and allow access only through p
 In this tutorial we are going to create fully managed private Kubernetes environment, by implementing Hob-spoke network topology in azure.
 We are going to define two spoke virtual networks:
 
-1. Spoke 1 : this virtual network will contain Kubernetes cluster virtual network and all the components related to the creation of the K8S cluster.
+1. Spoke 1 : this virtual network will contain Kubernetes cluster all the components related to the creation of the K8S cluster.
 2. Spoke 2 : this virtual network will contain Azure container registry , to store and pull docker images.
 
-In the Hub virtual network, we are going to provision the Jumpbox and Virtual network gateway to connect the virtual network to the on premises network using secure VPN tunnel.
+In the Hub virtual network, we are going to provision the Jumpbox and Virtual network gateway to connect the cloud environment to the on-premises network using a secure VPN tunnel.
 
 ![image](/AKS_hub_Spoke_Topology.jpg)
 
 **Parameters initialization**
 
-First, we are going to start by initializing all parameters that we will need for this tutorial.
+First, we are going to start by initializing all the parameters that we need for this tutorial.
 <br>
 ``` bash
 ##Variables declaration
@@ -58,9 +58,15 @@ hub_gateway_name="hub_vpn_gateway"
 
 **Vnets Creation and peering**
 
-In the next step  we create a resource group and virtual network vent for each zone ( Spoke 1, Spocke 2 and Hub).
+In the next step  we create a resource group and virtual network vnet for each zone ( Spoke 1, Spocke 2 and Hub).
 <br>
 ``` bash
+## Create resources groups
+
+az group create --name $aks_resource_group_name --location $location
+az group create --name $acr_resource_group_name --location $location
+az group create --name $hub_resource_group_name --location $location
+
 ## Create spoke 1 AKS VNet and SubNet
 az network vnet create \
     --resource-group $aks_resource_group_name \
@@ -92,7 +98,7 @@ Now we need to enable the communication between the three vnets :
 2. Hub needs to connect to spoke 2 to push images from the Jumbox to ACR
 3. Spoke1 needs to connect to Spoke2 to enable AKS to pull images from the ACR during the deployment.
 
-the script bellow enables thepeering between the vnets
+the script bellow enables the peering between the vnets
 
 <br>
 
@@ -146,7 +152,7 @@ az network vnet peering create \
 
 **Private AKS Creation**
 
-Now we are going to create AKS , --enable-private-cluster parameter is going to enable private link for K8S API Server.
+Now we are going to create AKS , --enable-private-cluster parameter enables private link for K8S API Server.
 before creating AKS , we get the last available stable version of Kubernetes for the current location
 <br>
 ``` bash
@@ -177,12 +183,12 @@ az aks create --resource-group $aks_resource_group_name \
               --dns-service-ip 10.30.0.10 \
               --service-cidr 10.30.0.0/16
 ```
+Now we created private AKS cluster , the API server can only be reachable from the AKS vnet or peered vnets.
 <br>
-Now we created AKS by enabling private link , the API server can only be reachable from the AKS vnet or peered vnets.
 
 **Creation of the jumpbox in hub vnet**
 
-In the next step we are going to create the jumpbox in hub vnet.
+In this step we are create the jumpbox in hub vnet.
 <br>
 ``` bash
 az network public-ip create \
@@ -231,8 +237,7 @@ az network private-dns link vnet create \
 **Creation of the ACR in spoke 2 vnet**
 
 
-Now we need to create a private Azure Container registry , first we create ACR , than we need to disable the private end point policy from the sub vnet , and create the private end point , we need also to create private dns zone with name as privatelink.azurecr.io
-and to add to A record with private ip addresses of the registry and the data acr endpoint.
+Now we need to create a private Azure Container registry , first we create ACR , than we need to disable the private end point policy from the subnet, after that we create the private end point , we need also to create private dns zone with a name as privatelink.azurecr.io and  add A records with private ip addresses of the registry and the data acr endpoints.
 Finally we are going to disable the  public access to the ACR
 <br>
 ``` bash
@@ -339,7 +344,7 @@ az network private-dns link vnet create \
 ```
 
 As you know AKS needs to be authenticated to pull images from the ACR , there are many ways to ensure that , for this tutorial we are going to use Azure service principal and RBAC.
-we create a service principal, and assign to it the read role from the ACR scope, than we need to update the AKS credential with the creates service principal.
+we create a service principal, and assign to it the read role from the ACR scope, than we need to update the AKS credential with the created service principal.
 <br>
 ``` bash
 acr_aks_role_password=$(az ad sp create-for-rbac \
@@ -368,7 +373,7 @@ From the JumBox we need to install the prerequisites to manage our cluster
 5. HELM ( K8S package manager)
 
 Execute the script [<span class="colour" style="color:blue">jumbox-install.sh</span>](jumbox-install.sh) to install all these prerequisite
-Now from the jumbox we are going to pull a public docker image , tag it with the name of our ACR  name than push it to the private registry
+Now from the jumbox we are going to pull a public docker image , tag it with the name of our ACR than push it to the private registry
 <br>
 ``` bash
 sudo docker pull neilpeterson/aks-helloworld:v1
@@ -416,7 +421,7 @@ controller:
       service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 ```
 
-The internal-ingress.yam contains the configuration required to enable the private load balancer
+The last step is to create ingress configuration to expose hello-word service to the private network.
 <br>
 ``` bash
 kubectl apply -f hello-world-ingress.yaml
@@ -430,8 +435,8 @@ curl http://10.20.1.240/hello-world-one
 
 **Create the VPN tunnel**
 
-Every thing is working fine from the jumbox ,  now we need to connect the hub private vnet to the on-premise vnet, we are going to create VPN gateway in the hub vnet.
-to create a vnet gateway require /27 subnet and dynamic IP address, the creation of the Vnet gateway will take more than 20 minutes
+Every thing is working fine from the jumbox ,we need to connect the hub private vnet to the on-premise vnet, we are going to create VPN gateway in the hub vnet.
+Azure network gateway requires /27 subnet and dynamic IP address, the creation of the Vnet gateway will take more than 20 minutes
 <br>
 ``` bash
 az network vnet subnet create --name $hub_gateway_subnet_name \
@@ -462,7 +467,7 @@ az network vnet-gateway show \
 ```
 
 After the creation of the VPN gateway you need to configure Site 2 Site connection with your on-premise VPN gateway , the configuration depends on the software used in on-premise environment.
-In the this demo , we are going to configure Point to Site configuration, that allows you to install client VPN in your desktop and connect to Azure private environment.
+In the this demo , we are going to configure Point to Site connection, that allows you to install client VPN in your desktop and connect to Azure private environment.
 the configuration of  the certificates and the private key are explained in [generate-certificate.sh](generate-certificate.sh).
 Now that you have your certificate and private key, you can configure your P2S and download the client VPN software.
 <br>
