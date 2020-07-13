@@ -8,7 +8,7 @@ But it’s also possible to protect your cluster and allow access only through p
 In this tutorial we are going to create fully managed private Kubernetes environment, by implementing Hob-spoke network topology in azure.
 We are going to define two spoke virtual networks:
 
-1. Spoke 1 : this virtual network will contain Kubernetes cluster all the components related to the creation of the K8S cluster.
+1. Spoke 1 : this virtual network will contain Kubernetes cluster and  all the components related to the creation of the K8S cluster.
 2. Spoke 2 : this virtual network will contain Azure container registry , to store and pull docker images.
 
 In the Hub virtual network, we are going to provision the Jumpbox and Virtual network gateway to connect the cloud environment to the on-premises network using a secure VPN tunnel.
