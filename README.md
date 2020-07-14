@@ -394,7 +394,7 @@ kubectl get all
 **Local network facing ingress**
 
 To access to the service from outside of the cluster, we need to install ingress.
-Using helm  we are going to install ngnix-ingress  and enable private load balancer.
+Using helm  we are going to install ngnix-ingress  and enable a private load balancer.
 <br>
 ``` bash
 # Create a namespace for your ingress resources
